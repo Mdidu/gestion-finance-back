@@ -1,0 +1,57 @@
+{
+  "env": {
+    "browser": true,
+    "es2022": true
+  },
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:@typescript-eslint/strict",
+    "plugin:import/recommended",
+    "plugin:unicorn/recommended"
+  ],
+  "overrides": [],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": 2022,
+    "project": "tsconfig.json",
+    "sourceType": "module"
+  },
+  "settings": {
+    "import/resolver": {
+      "node": {
+        "paths": ["src"],
+        "extensions": [".js", ".jsx", ".ts", ".tsx"]
+      }
+    }
+  },
+  "plugins": ["@typescript-eslint", "promise", "import", "unicorn"],
+  "rules": {
+    "@typescript-eslint/consistent-type-definitions": ["error", "type"],
+    "@typescript-eslint/ban-types": "error",
+    "@typescript-eslint/no-require-imports": "error",
+    "@typescript-eslint/prefer-nullish-coalescing": "error",
+    "@typescript-eslint/prefer-optional-chain": "error",
+    "@typescript-eslint/prefer-readonly": "error",
+    "@typescript-eslint/promise-function-async": "error",
+    "@typescript-eslint/sort-type-constituents": "warn",
+    "@typescript-eslint/switch-exhaustiveness-check": "error",
+    "unicorn/filename-case": "off",
+    "unicorn/prevent-abbreviations": [
+      "error",
+      {
+        "replacements": {
+          "nb": {
+            "number": true
+          },
+          "cmd": {
+            "command": true
+          },
+          "errCb": {
+            "handleError": true
+          }
+        }
+      }
+    ]
+  }
+}
