@@ -18,12 +18,12 @@ import {
 export class AssetController {
   constructor(private readonly assetService: AssetService) {}
 
-  @Get("")
+  @Get("/:portfolioId")
   public getAllAssetsByPortfolio(): AssetListResponse {
     return this.assetService.getAllAssetsByPortfolio();
   }
 
-  @Get("/:assetId")
+  @Get("/:portfolioId/:assetId")
   public getOneAsset(
     @Param("assetId", ParseIntPipe) assetId: number
   ): AssetResponse {
@@ -35,7 +35,7 @@ export class AssetController {
     return this.assetService.createAsset(assetDTO);
   }
 
-  @Put("/:assetId")
+  @Put("/:portfolioId/:assetId")
   public updateAsset(
     @Param("assetId", ParseIntPipe) assetId: number,
     @Body() assetDTO: any
@@ -43,7 +43,7 @@ export class AssetController {
     return this.assetService.updateAsset(assetId, assetDTO);
   }
 
-  @Delete("/:assetId")
+  @Delete("/:portfolioId/:assetId")
   public deleteAsset(
     @Param("assetId", ParseIntPipe) assetId: number
   ): AssetResponse {

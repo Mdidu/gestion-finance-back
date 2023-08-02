@@ -1,8 +1,9 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { Asset, AssetRepository } from "./asset.repository";
+import { AssetDTO } from "./asset.dto";
+import { AssetRepository } from "./asset.repository";
 
-export type AssetResponse = { asset: Asset };
-export type AssetListResponse = { assetList: Asset[] };
+export type AssetResponse = { asset: AssetDTO };
+export type AssetListResponse = { assetList: AssetDTO[] };
 
 @Injectable()
 export class AssetService {
@@ -21,7 +22,7 @@ export class AssetService {
     return { asset };
   }
 
-  public createAsset(assetDTO: Asset): AssetResponse {
+  public createAsset(assetDTO: AssetDTO): AssetResponse {
     const asset = this.assetRepository.createAsset(assetDTO);
 
     return { asset };
