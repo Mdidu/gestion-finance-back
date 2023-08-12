@@ -1,8 +1,18 @@
 import { Module } from "@nestjs/common";
-import AssetModule from "./asset/asset.module";
+import { DatabaseModule } from "./infrastructure/config/database/database.module";
+import { EnvironmentConfigModule } from "./infrastructure/config/environment-config/environment-config.module";
+import { ControllersModule } from "./infrastructure/controllers/controllers.module";
+import { RepositoriesModule } from "./infrastructure/repositories/repositories.module";
+import { ServicesModule } from "./infrastructure/services/services.module";
 
 @Module({
-  imports: [AssetModule],
+  imports: [
+    EnvironmentConfigModule,
+    ServicesModule,
+    RepositoriesModule,
+    ControllersModule,
+    DatabaseModule,
+  ],
   controllers: [],
   providers: [],
 })
