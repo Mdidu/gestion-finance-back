@@ -10,29 +10,39 @@ export type AssetListResponse = { assetList: AssetDTO[] };
 export class AssetService {
   constructor(private readonly assetRepository: DatabaseAssetRepository) {}
 
-  public getAllAssetsByPortfolio(): Promise<AssetDTO[]> {
-    const assetList = this.assetRepository.getAllAssetsByPortfolio(1);
+  public getAllAssetsByPortfolio(portfolioId: number): Promise<AssetDTO[]> {
+    const assetList = this.assetRepository.getAllAssetsByPortfolio(portfolioId);
     // .then((res) => res.map((asset) => this.mappeAssetDAOToAssetDTO(asset)));
 
     return assetList;
   }
 
-  public getOneAsset(assetId: number): Promise<AssetDTO> {
-    const asset = this.assetRepository.getOneAsset(assetId);
+  public getAllAssetFromLastMonth(portfolioId: number): Promise<AssetDTO[]> {
+    const assetList =
+      this.assetRepository.getAllAssetFromLastMonth(portfolioId);
+    // .then((res) => res.map((asset) => this.mappeAssetDAOToAssetDTO(asset)));
+    return assetList;
+  }
+
+  public getOneAsset(portfolioId: number, assetId: number): Promise<AssetDTO> {
+    const asset = this.assetRepository.getOneAsset(portfolioId, assetId);
 
     return asset;
     // if (!asset) throw new NotFoundException("Asset not found");
     // return { asset };
   }
 
-  public createAsset(assetDTO: AssetDTO): Promise<AssetDTO> {
-    const asset = this.assetRepository.createAsset(assetDTO);
+  public createAsset(
+    assetDTO: AssetDTO,
+    portfolioId: number
+  ): Promise<AssetDTO> {
+    const asset = this.assetRepository.createAsset(assetDTO, portfolioId);
     return asset;
     // return { asset };
   }
 
-  public updateAsset(assetId: number, assetDTO: any): Promise<AssetDTO> {
-    const asset = this.assetRepository.updateAsset(assetId, assetDTO);
+  public updateAsset(portfolioId: number, assetDTO: any): Promise<AssetDTO> {
+    const asset = this.assetRepository.updateAsset(portfolioId, assetDTO);
     return asset;
     // if (!asset) throw new NotFoundException("Asset not found");
     // return { asset };
@@ -50,11 +60,14 @@ export class AssetService {
       id: assetDAO.idAsset,
       name: assetDAO.name,
       distribution: assetDAO.amount,
+      quantity: assetDAO.quantity,
       valuePerPeriod: [
         { date: assetDAO.purchasedAt, value: assetDAO.quantity },
         { date: assetDAO.soldAt, value: assetDAO.quantity },
       ],
-      totalAmount: assetDAO.amount,
+      amount: assetDAO.amount,
+      purchased: assetDAO.purchased,
+      assetType: assetDAO.fk_idAssetType,
     };
   }
 }

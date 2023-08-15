@@ -20,35 +20,60 @@ export class AssetController {
   constructor(private readonly assetService: AssetService) {}
 
   @Get("/:portfolioId")
-  public getAllAssetsByPortfolio(): Promise<AssetListResponse> {
-    return this.assetService.getAllAssetsByPortfolio().then((res) => {
-      return { assetList: res };
-    });
+  public getAllAssetsByPortfolio(
+    @Param("portfolioId", ParseIntPipe) portfolioId: number
+  ): Promise<AssetListResponse> {
+    return this.assetService
+      .getAllAssetsByPortfolio(portfolioId)
+      .then((res) => {
+        return { assetList: res };
+      });
+  }
+
+  @Get("/:portfolioId/lastMonth")
+  public getAllAssetFromLastMonth(
+    @Param("portfolioId", ParseIntPipe) portfolioId: number
+  ): Promise<AssetListResponse> {
+    return this.assetService
+      .getAllAssetFromLastMonth(portfolioId)
+      .then((res) => {
+        return { assetList: res };
+      });
   }
 
   @Get("/:portfolioId/:assetId")
   public getOneAsset(
+    @Param("portfolioId", ParseIntPipe) portfolioId: number,
     @Param("assetId", ParseIntPipe) assetId: number
   ): Promise<AssetResponse> {
-    return this.assetService.getOneAsset(assetId).then((res: AssetDTO) => {
-      return { asset: res };
-    });
+    return this.assetService
+      .getOneAsset(portfolioId, assetId)
+      .then((res: AssetDTO) => {
+        return { asset: res };
+      });
   }
 
-  @Post()
-  public createAsset(@Body() assetDTO: any): Promise<AssetResponse> {
-    return this.assetService.createAsset(assetDTO).then((res: AssetDTO) => {
-      return { asset: res };
-    });
+  @Post("/:portfolioId")
+  public createAsset(
+    @Body() assetDTO: AssetDTO,
+    @Param("portfolioId", ParseIntPipe) portfolioId: number
+  ): Promise<AssetResponse> {
+    console.log(assetDTO);
+    return this.assetService
+      .createAsset(assetDTO, portfolioId)
+      .then((res: AssetDTO) => {
+        return { asset: res };
+      });
   }
 
   @Put("/:portfolioId/:assetId")
   public updateAsset(
+    @Param("portfolioId", ParseIntPipe) portfolioId: number,
     @Param("assetId", ParseIntPipe) assetId: number,
     @Body() assetDTO: any
   ): Promise<AssetResponse> {
     return this.assetService
-      .updateAsset(assetId, assetDTO)
+      .updateAsset(portfolioId, assetDTO)
       .then((res: AssetDTO) => {
         return { asset: res };
       });
@@ -56,6 +81,7 @@ export class AssetController {
 
   @Delete("/:portfolioId/:assetId")
   public deleteAsset(
+    @Param("portfolioId", ParseIntPipe) portfolioId: number,
     @Param("assetId", ParseIntPipe) assetId: number
   ): Promise<AssetResponse> {
     return this.assetService.deleteAsset(assetId).then((res: AssetDTO) => {
@@ -63,19 +89,3 @@ export class AssetController {
     });
   }
 }
-// async function getAllAssetsByPortfolio(): Promise<AssetDTO[]> {
-//   const connection = await mysql.createConnection({
-//     host: "localhost",
-//     user: "root",
-//     password: "password",
-//     database: "mydatabase",
-//   });
-
-//   const [rows] = await connection.query<AssetDTO[]>(
-//     "SELECT * FROM `asset` WHERE fk_idWallet = 1"
-//   );
-
-//   await connection.end();
-
-//   return rows;
-// }
