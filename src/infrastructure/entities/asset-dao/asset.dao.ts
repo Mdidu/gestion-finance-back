@@ -4,6 +4,7 @@ const AssetDAOScheme = z.object({
   idAsset: z.number(),
   name: z.string(),
   amount: z.number(),
+  totalAmount: z.number().optional(),
   quantity: z.number(),
   distribution: z.number().optional(),
   purchasedAt: z.date(),

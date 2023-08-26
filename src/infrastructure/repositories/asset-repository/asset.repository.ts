@@ -10,20 +10,25 @@ export class DatabaseAssetRepository implements AssetRepository {
 
   public async getAllAssetsByPortfolio(
     portfolioId: number
-  ): Promise<AssetDTO[]> {
-    const [rows] = await this.conn
-      .promise()
-      .query(`SELECT * FROM asset WHERE fk_idWallet = ${portfolioId}`);
-    const assetDAO: AssetDAO[] = rows.map((row: any) =>
+  ): Promise<AssetDAO[]> {
+    const [rows] = await this.conn.promise().query(`SELECT a.*, t.totalAmount
+      FROM asset a
+      JOIN (
+        SELECT fk_idWallet, SUM(amount) as totalAmount
+        FROM asset
+        WHERE fk_idWallet = ${portfolioId}
+        GROUP BY fk_idWallet
+      ) t ON a.fk_idWallet = t.fk_idWallet
+      WHERE a.fk_idWallet = ${portfolioId}`);
+    const listAssetDAO: AssetDAO[] = rows.map((row: any) =>
       this.mappeToAssetDAO(row)
     );
-    const listAssetDTO = assetDAO.map((asset) => this.toDTO(asset));
-    return listAssetDTO;
+    return listAssetDAO;
   }
 
   public async getAllAssetFromLastMonth(
     portfolioId: number
-  ): Promise<AssetDTO[]> {
+  ): Promise<AssetDAO[]> {
     const previousMonthDate = DateToolsService.getPreviousMonthDate(new Date());
     const previousMonthDateString =
       DateToolsService.formatDateToDateString(previousMonthDate);
@@ -33,37 +38,33 @@ export class DatabaseAssetRepository implements AssetRepository {
       .query(
         `SELECT * FROM asset WHERE fk_idWallet = ${portfolioId} AND purchasedAt BETWEEN ${previousMonthDateString} AND ${currentDate} OR soldAt BETWEEN ${previousMonthDateString} AND ${currentDate}`
       );
-    const assetDAO: AssetDAO[] = rows.map((row: any) =>
+    const listAssetDAO: AssetDAO[] = rows.map((row: any) =>
       this.mappeToAssetDAO(row)
     );
-    const listAssetDTO = assetDAO.map((asset) => this.toDTO(asset));
-    return listAssetDTO;
+    return listAssetDAO;
   }
 
-  public getAllAssetsByMonth(month: number): Promise<AssetDTO[]> {
+  public getAllAssetsByMonth(month: number): Promise<AssetDAO[]> {
     return new Promise((resolve, reject) => {});
   }
 
   public async getOneAsset(
     portfolioId: number,
     assetId: number
-  ): Promise<AssetDTO> {
+  ): Promise<AssetDAO> {
     const [rows] = await this.conn
       .promise()
       .query(
-        `SELECT * FROM asset WHERE fk_idWallet = ${portfolioId} AND idAsset = ${assetId}`
+        `SELECT * FROM asset WHERE fk_idWallet = ${portfolioId} AND idAsset = ${assetId} LIMIT 1`
       );
-    const assetDAO: AssetDAO[] = rows.map((row: any) =>
-      this.mappeToAssetDAO(row)
-    );
-    const assetDTO = assetDAO.map((asset) => this.toDTO(asset))[0];
-    return assetDTO;
+    const listAssetDAO = this.mappeToAssetDAO(rows);
+    return listAssetDAO;
   }
 
   public async createAsset(
     asset: AssetDTO,
     portfolioId: number
-  ): Promise<AssetDTO> {
+  ): Promise<AssetDAO> {
     let purchasedAt = null;
     let soldAt = null;
 
@@ -83,14 +84,13 @@ export class DatabaseAssetRepository implements AssetRepository {
         `INSERT INTO asset (name, amount, quantity, purchasedAt, soldAt, purchased, fk_idAssetType, fk_idWallet) VALUES ('${asset.name}', ${asset.amount}, ${asset.quantity}, ${purchasedAt}, ${soldAt}, ${asset.purchased}, ${asset.assetType}, ${portfolioId})`
       );
     const assetDAO = this.mappeToAssetDAO(rows);
-    const assetDTO = this.toDTO(assetDAO);
-    return assetDTO;
+    return assetDAO;
   }
 
   public async updateAsset(
     portfolioId: number,
     asset: AssetDTO
-  ): Promise<AssetDTO> {
+  ): Promise<AssetDAO> {
     let purchasedAt = null;
     let soldAt = null;
 
@@ -109,33 +109,15 @@ export class DatabaseAssetRepository implements AssetRepository {
         `UPDATE asset SET name = '${asset.name}', amount = ${asset.amount}, quantity = ${asset.quantity}, purchasedAt = ${purchasedAt}, soldAt = ${soldAt}, purchased = ${asset.purchased}, fk_idAssetType = ${asset.assetType} WHERE idAsset = ${asset.id} AND fk_idWallet = ${portfolioId}`
       );
     const assetDAO = this.mappeToAssetDAO(rows);
-    const assetDTO = this.toDTO(assetDAO);
-    return assetDTO;
+    return assetDAO;
   }
 
-  public async deleteAsset(assetId: number): Promise<AssetDTO> {
+  public async deleteAsset(assetId: number): Promise<AssetDAO> {
     const rows = await this.conn
       .promise()
       .query(`DELETE FROM asset WHERE idAsset = ${assetId}`);
     const assetDAO = this.mappeToAssetDAO(rows);
-    const assetDTO = this.toDTO(assetDAO);
-    return assetDTO;
-  }
-
-  public toDTO(assetDAO: AssetDAO): AssetDTO {
-    return {
-      id: assetDAO.idAsset,
-      name: assetDAO.name,
-      distribution: assetDAO.distribution,
-      quantity: assetDAO.quantity,
-      valuePerPeriod: [
-        { date: assetDAO.purchasedAt, value: assetDAO.amount },
-        { date: assetDAO.soldAt, value: assetDAO.amount },
-      ],
-      amount: assetDAO.amount,
-      purchased: assetDAO.purchased,
-      assetType: assetDAO.fk_idAssetType,
-    };
+    return assetDAO;
   }
 
   public toDAO(assetDTO: AssetDTO): AssetDAO {
@@ -153,13 +135,14 @@ export class DatabaseAssetRepository implements AssetRepository {
     };
   }
 
-  // TODO Modifier pour return direct un dto ?
   public mappeToAssetDAO(row: any): AssetDAO {
     return {
       idAsset: row.idAsset,
       name: row.name,
+      totalAmount: row.totalAmount,
       amount: row.amount,
       quantity: row.quantity,
+      distribution: (row.amount / row.totalAmount) * 100,
       purchasedAt: row.purchasedAt,
       soldAt: row.soldAt,
       purchased: row.purchased === 1 ? true : false,
