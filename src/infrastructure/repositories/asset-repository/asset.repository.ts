@@ -1,5 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { AssetRepository } from "src/domain/repositories/asset-repository/asset.repository";
+import { AssetTypeDAO } from "src/infrastructure/entities/asset-type-dao/asset-type.dao";
 import { DateToolsService } from "src/lib/tools/date-tools/date-tools.service";
 import { AssetDTO } from "../../../domain/model/asset-dto/asset.dto";
 import { AssetDAO } from "../../entities/asset-dao/asset.dao";
@@ -7,6 +8,14 @@ import { AssetDAO } from "../../entities/asset-dao/asset.dao";
 @Injectable()
 export class DatabaseAssetRepository implements AssetRepository {
   constructor(@Inject("MYSQL_CONNECTION") private conn: any) {}
+
+  public async getAllAssetTypes(): Promise<AssetTypeDAO[]> {
+    const [rows] = await this.conn.promise().query(`SELECT * FROM asset_type`);
+    const listAssetTypeDAO: AssetTypeDAO[] = rows.map((row: any) =>
+      this.mappeToAssetTypeDAO(row)
+    );
+    return listAssetTypeDAO;
+  }
 
   public async getAllAssetsByPortfolio(
     portfolioId: number
@@ -48,43 +57,61 @@ export class DatabaseAssetRepository implements AssetRepository {
     return new Promise((resolve, reject) => {});
   }
 
-  public async getOneAsset(
+  public async getAllOperationForOneAsset(
     portfolioId: number,
     assetId: number
-  ): Promise<AssetDAO> {
+  ): Promise<AssetDAO[]> {
+    const [row] = await this.conn
+      .promise()
+      .query(
+        `SELECT name FROM asset WHERE fk_idWallet = ${portfolioId} AND idAsset = ${assetId} LIMIT 1`
+      );
+
+    const assetName = row[0].name;
     const [rows] = await this.conn
       .promise()
       .query(
-        `SELECT * FROM asset WHERE fk_idWallet = ${portfolioId} AND idAsset = ${assetId} LIMIT 1`
+        `SELECT * FROM asset WHERE fk_idWallet = ${portfolioId} AND name = '${assetName}'`
       );
-    const listAssetDAO = this.mappeToAssetDAO(rows);
+    console.log(rows, "rrrrrrrrrrrrrrr");
+    const listAssetDAO: AssetDAO[] = rows.map((row: any) =>
+      this.mappeToAssetDAO(row)
+    );
     return listAssetDAO;
   }
 
   public async createAsset(
-    asset: AssetDTO,
+    asset: any,
     portfolioId: number
-  ): Promise<AssetDAO> {
+  ): Promise<AssetDAO[]> {
     let purchasedAt = null;
     let soldAt = null;
+    let purchased = null;
+    let request = "";
 
-    if (asset.purchased) {
-      purchasedAt = DateToolsService.formatDateToDateString(
-        new Date(asset.valuePerPeriod[0].date)
-      );
-    } else {
-      soldAt = DateToolsService.formatDateToDateString(
-        new Date(asset.valuePerPeriod[0].date)
-      );
+    if (asset.typeOperation === "buy") {
+      purchasedAt = asset.date;
+      purchased = 1;
+      request = `INSERT INTO asset (name, amount, quantity, purchasedAt, soldAt, purchased, fk_idAssetType, fk_idWallet) VALUES ('${asset.name}', ${asset.amount}, ${asset.quantity}, '${purchasedAt}', ${soldAt}, ${purchased}, ${asset.assetType}, ${portfolioId})`;
+    }
+    if (asset.typeOperation === "sell") {
+      soldAt = asset.date;
+      purchased = 0;
+      request = `INSERT INTO asset (name, amount, quantity, purchasedAt, soldAt, purchased, fk_idAssetType, fk_idWallet) VALUES ('${asset.name}', ${asset.amount}, ${asset.quantity}, ${purchasedAt}, '${soldAt}', ${purchased}, ${asset.assetType}, ${portfolioId})`;
     }
 
     const rows = await this.conn
       .promise()
-      .query(
-        `INSERT INTO asset (name, amount, quantity, purchasedAt, soldAt, purchased, fk_idAssetType, fk_idWallet) VALUES ('${asset.name}', ${asset.amount}, ${asset.quantity}, ${purchasedAt}, ${soldAt}, ${asset.purchased}, ${asset.assetType}, ${portfolioId})`
-      );
-    const assetDAO = this.mappeToAssetDAO(rows);
-    return assetDAO;
+      .query(request)
+      .catch((err: any) => {
+        throw new Error("Error while creating asset : " + err.message);
+      })
+      .then((res: any) => {
+        const result = this.getAllAssetsByPortfolio(portfolioId);
+        return result;
+      });
+
+    return rows;
   }
 
   public async updateAsset(
@@ -121,7 +148,6 @@ export class DatabaseAssetRepository implements AssetRepository {
   }
 
   public toDAO(assetDTO: AssetDTO): AssetDAO {
-    // TODO Ajuster la fonction
     return {
       idAsset: assetDTO.id ? assetDTO.id : -1,
       name: assetDTO.name,
@@ -148,6 +174,13 @@ export class DatabaseAssetRepository implements AssetRepository {
       purchased: row.purchased === 1 ? true : false,
       fk_idAssetType: row.fk_idAssetType,
       fk_idWallet: row.fk_idWallet,
+    };
+  }
+
+  public mappeToAssetTypeDAO(row: any): AssetTypeDAO {
+    return {
+      id: row.idAssetType,
+      name: row.name,
     };
   }
 }

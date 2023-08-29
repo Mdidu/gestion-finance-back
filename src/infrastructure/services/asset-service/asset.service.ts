@@ -1,4 +1,6 @@
 import { Injectable } from "@nestjs/common";
+import { AssetTypeDTO } from "src/domain/model/asset-type/asset-type.dto";
+import { AssetTypeDAO } from "src/infrastructure/entities/asset-type-dao/asset-type.dao";
 import { AssetDTO } from "../../../domain/model/asset-dto/asset.dto";
 import { AssetDAO } from "../../entities/asset-dao/asset.dao";
 import { DatabaseAssetRepository } from "../../repositories/asset-repository/asset.repository";
@@ -9,6 +11,11 @@ export type AssetListResponse = { assetList: AssetDTO[] };
 @Injectable()
 export class AssetService {
   constructor(private readonly assetRepository: DatabaseAssetRepository) {}
+
+  public getAllAssetTypes(): Promise<AssetTypeDTO[]> {
+    const assetTypeList = this.assetRepository.getAllAssetTypes();
+    return assetTypeList;
+  }
 
   public getAllAssetsByPortfolio(portfolioId: number): Promise<AssetDTO[]> {
     const assetList = this.assetRepository
@@ -36,29 +43,39 @@ export class AssetService {
               index === self.findIndex((t) => t.name === asset.name)
           )
       );
-    // .then((res) => res.map((asset) => this.mappeAssetDAOToAssetDTO(asset)));
     return assetList;
   }
 
-  public getOneAsset(portfolioId: number, assetId: number): Promise<AssetDTO> {
+  public getAllOperationForOneAsset(
+    portfolioId: number,
+    assetId: number
+  ): Promise<AssetDTO[]> {
     const asset = this.assetRepository
-      .getOneAsset(portfolioId, assetId)
-      .then((res) => this.mappeAssetDAOToAssetDTO(res, [res]));
+      .getAllOperationForOneAsset(portfolioId, assetId)
+      .then((res) =>
+        res
+          .map((asset) => this.mappeAssetDAOToAssetDTO(asset, res))
+          .filter(
+            (asset, index, self) =>
+              index === self.findIndex((t) => t.name === asset.name)
+          )
+      );
 
     return asset;
-    // if (!asset) throw new NotFoundException("Asset not found");
-    // return { asset };
   }
 
-  public createAsset(
-    assetDTO: AssetDTO,
-    portfolioId: number
-  ): Promise<AssetDTO> {
+  public createAsset(assetDTO: any, portfolioId: number): Promise<AssetDTO[]> {
     const asset = this.assetRepository
       .createAsset(assetDTO, portfolioId)
-      .then((res) => this.mappeAssetDAOToAssetDTO(res, [res]));
+      .then((res) =>
+        res
+          .map((asset) => this.mappeAssetDAOToAssetDTO(asset, res))
+          .filter(
+            (asset, index, self) =>
+              index === self.findIndex((t) => t.name === asset.name)
+          )
+      );
     return asset;
-    // return { asset };
   }
 
   public updateAsset(portfolioId: number, assetDTO: any): Promise<AssetDTO> {
@@ -66,8 +83,6 @@ export class AssetService {
       .updateAsset(portfolioId, assetDTO)
       .then((res) => this.mappeAssetDAOToAssetDTO(res, [res]));
     return asset;
-    // if (!asset) throw new NotFoundException("Asset not found");
-    // return { asset };
   }
 
   public deleteAsset(assetId: number): Promise<AssetDTO> {
@@ -75,8 +90,6 @@ export class AssetService {
       .deleteAsset(assetId)
       .then((res) => this.mappeAssetDAOToAssetDTO(res, [res]));
     return asset;
-    // if (!asset) throw new NotFoundException("Asset not found");
-    // return { asset };
   }
 
   public mappeAssetDAOToAssetDTO(
@@ -94,7 +107,10 @@ export class AssetService {
       quantity: assetDAO.quantity,
       valuePerPeriod: arrValuePerPeriod,
       amount: assetDAO.amount,
-      totalAmount: arrValuePerPeriod.reduce((acc, cur) => acc + cur.value, 0),
+      totalAmount: arrValuePerPeriod.reduce((acc, cur) => {
+        if (cur.topBuy === "S") return acc - cur.value;
+        if (cur.topBuy === "B") return acc + cur.value;
+      }, 0),
       purchased: assetDAO.purchased,
       assetType: assetDAO.fk_idAssetType,
     };
@@ -124,5 +140,14 @@ export class AssetService {
     }
 
     return valuePerPeriod;
+  }
+
+  public mappeAssetTypeDAOToAssetTypeDTO(
+    assetTypeDAO: AssetTypeDAO
+  ): AssetTypeDTO {
+    return {
+      id: assetTypeDAO.id,
+      name: assetTypeDAO.name,
+    };
   }
 }

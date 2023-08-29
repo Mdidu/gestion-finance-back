@@ -19,6 +19,11 @@ import {
 export class AssetController {
   constructor(private readonly assetService: AssetService) {}
 
+  @Get("/types")
+  public getAllAssetTypes(): Promise<any[]> {
+    return this.assetService.getAllAssetTypes();
+  }
+
   @Get("/:portfolioId")
   public getAllAssetsByPortfolio(
     @Param("portfolioId", ParseIntPipe) portfolioId: number
@@ -42,27 +47,26 @@ export class AssetController {
   }
 
   @Get("/:portfolioId/:assetId")
-  public getOneAsset(
+  public getAllOperationForOneAsset(
     @Param("portfolioId", ParseIntPipe) portfolioId: number,
     @Param("assetId", ParseIntPipe) assetId: number
-  ): Promise<AssetResponse> {
+  ): Promise<AssetListResponse> {
     return this.assetService
-      .getOneAsset(portfolioId, assetId)
-      .then((res: AssetDTO) => {
-        return { asset: res };
+      .getAllOperationForOneAsset(portfolioId, assetId)
+      .then((res: AssetDTO[]) => {
+        return { assetList: res };
       });
   }
 
   @Post("/:portfolioId")
   public createAsset(
-    @Body() assetDTO: AssetDTO,
+    @Body() assetDTO: any,
     @Param("portfolioId", ParseIntPipe) portfolioId: number
-  ): Promise<AssetResponse> {
-    console.log(assetDTO);
+  ): Promise<AssetListResponse> {
     return this.assetService
       .createAsset(assetDTO, portfolioId)
-      .then((res: AssetDTO) => {
-        return { asset: res };
+      .then((res: AssetDTO[]) => {
+        return { assetList: res };
       });
   }
 
