@@ -1,8 +1,9 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { AssetRepository } from "src/domain/repositories/asset-repository/asset.repository";
 import { AssetTypeDAO } from "src/infrastructure/entities/asset-type-dao/asset-type.dao";
+import { Constante } from "src/lib/shared/constante";
 import { DateToolsService } from "src/lib/tools/date-tools/date-tools.service";
-import { AssetDTO } from "../../../domain/model/asset-dto/asset.dto";
+import { AssetDTO, AssetForm } from "../../../domain/model/asset-dto/asset.dto";
 import { AssetDAO } from "../../entities/asset-dao/asset.dao";
 
 @Injectable()
@@ -59,21 +60,13 @@ export class DatabaseAssetRepository implements AssetRepository {
 
   public async getAllOperationForOneAsset(
     portfolioId: number,
-    assetId: number
+    assetName: string
   ): Promise<AssetDAO[]> {
-    const [row] = await this.conn
-      .promise()
-      .query(
-        `SELECT name FROM asset WHERE fk_idWallet = ${portfolioId} AND idAsset = ${assetId} LIMIT 1`
-      );
-
-    const assetName = row[0].name;
     const [rows] = await this.conn
       .promise()
       .query(
         `SELECT * FROM asset WHERE fk_idWallet = ${portfolioId} AND name = '${assetName}'`
       );
-    console.log(rows, "rrrrrrrrrrrrrrr");
     const listAssetDAO: AssetDAO[] = rows.map((row: any) =>
       this.mappeToAssetDAO(row)
     );
@@ -81,7 +74,7 @@ export class DatabaseAssetRepository implements AssetRepository {
   }
 
   public async createAsset(
-    asset: any,
+    asset: AssetForm,
     portfolioId: number
   ): Promise<AssetDAO[]> {
     let purchasedAt = null;
@@ -89,12 +82,12 @@ export class DatabaseAssetRepository implements AssetRepository {
     let purchased = null;
     let request = "";
 
-    if (asset.typeOperation === "buy") {
+    if (asset.typeOperation === Constante.NOM_OPERATION_TYPE.BUY) {
       purchasedAt = asset.date;
       purchased = 1;
       request = `INSERT INTO asset (name, amount, quantity, purchasedAt, soldAt, purchased, fk_idAssetType, fk_idWallet) VALUES ('${asset.name}', ${asset.amount}, ${asset.quantity}, '${purchasedAt}', ${soldAt}, ${purchased}, ${asset.assetType}, ${portfolioId})`;
     }
-    if (asset.typeOperation === "sell") {
+    if (asset.typeOperation === Constante.NOM_OPERATION_TYPE.SELL) {
       soldAt = asset.date;
       purchased = 0;
       request = `INSERT INTO asset (name, amount, quantity, purchasedAt, soldAt, purchased, fk_idAssetType, fk_idWallet) VALUES ('${asset.name}', ${asset.amount}, ${asset.quantity}, ${purchasedAt}, '${soldAt}', ${purchased}, ${asset.assetType}, ${portfolioId})`;
@@ -116,35 +109,54 @@ export class DatabaseAssetRepository implements AssetRepository {
 
   public async updateAsset(
     portfolioId: number,
-    asset: AssetDTO
-  ): Promise<AssetDAO> {
+    asset: AssetForm
+  ): Promise<AssetDAO[]> {
     let purchasedAt = null;
     let soldAt = null;
+    let purchased = null;
+    let request = "";
 
-    if (asset.purchased) {
-      purchasedAt = DateToolsService.formatDateToDateString(
-        new Date(asset.valuePerPeriod[0].date)
-      );
-    } else {
-      soldAt = DateToolsService.formatDateToDateString(
-        new Date(asset.valuePerPeriod[0].date)
-      );
+    if (asset.typeOperation === Constante.NOM_OPERATION_TYPE.BUY) {
+      purchasedAt = asset.date;
+      purchased = 1;
+      request = `UPDATE asset SET name = '${asset.name}', amount = ${asset.amount}, quantity = ${asset.quantity}, purchasedAt = '${purchasedAt}', soldAt = ${soldAt}, purchased = ${purchased}, fk_idAssetType = ${asset.assetType} WHERE idAsset = ${asset.id} AND fk_idWallet = ${portfolioId}`;
+    }
+    if (asset.typeOperation === Constante.NOM_OPERATION_TYPE.SELL) {
+      soldAt = asset.date;
+      purchased = 0;
+      request = `UPDATE asset SET name = '${asset.name}', amount = ${asset.amount}, quantity = ${asset.quantity}, purchasedAt = ${purchasedAt}, soldAt = '${soldAt}', purchased = ${purchased}, fk_idAssetType = ${asset.assetType} WHERE idAsset = ${asset.id} AND fk_idWallet = ${portfolioId}`;
     }
     const rows = await this.conn
       .promise()
-      .query(
-        `UPDATE asset SET name = '${asset.name}', amount = ${asset.amount}, quantity = ${asset.quantity}, purchasedAt = ${purchasedAt}, soldAt = ${soldAt}, purchased = ${asset.purchased}, fk_idAssetType = ${asset.assetType} WHERE idAsset = ${asset.id} AND fk_idWallet = ${portfolioId}`
-      );
-    const assetDAO = this.mappeToAssetDAO(rows);
-    return assetDAO;
+      .query(request)
+      .catch((err: any) => {
+        throw new Error("Error while updating asset : " + err.message);
+      })
+      .then((res: any) => {
+        if (asset.name) {
+          const result = this.getAllOperationForOneAsset(
+            portfolioId,
+            asset.name
+          );
+          return result;
+        }
+      });
+    return rows;
   }
 
-  public async deleteAsset(assetId: number): Promise<AssetDAO> {
+  public async deleteAsset(
+    assetId: number,
+    assetName: string,
+    portfolioId: number
+  ): Promise<AssetDAO[]> {
     const rows = await this.conn
       .promise()
-      .query(`DELETE FROM asset WHERE idAsset = ${assetId}`);
-    const assetDAO = this.mappeToAssetDAO(rows);
-    return assetDAO;
+      .query(`DELETE FROM asset WHERE idAsset = ${assetId}`)
+      .then((res: any) => {
+        const result = this.getAllOperationForOneAsset(portfolioId, assetName);
+        return result;
+      });
+    return rows;
   }
 
   public toDAO(assetDTO: AssetDTO): AssetDAO {

@@ -7,15 +7,27 @@ const AssetDTOScheme = z.object({
   quantity: z.number(),
   valuePerPeriod: z.array(
     z.object({
-      date: z.date(),
+      date: z.string(),
       value: z.number(),
       totalAmount: z.number(),
       topBuy: z.string(),
+      quantity: z.number(),
+      id: z.number(),
     })
   ),
   amount: z.number(),
   totalAmount: z.number().optional(),
   purchased: z.boolean(),
+  assetType: z.number(),
+});
+
+const AssetFormScheme = z.object({
+  id: z.number().optional(),
+  name: z.string(),
+  date: z.string(),
+  quantity: z.number(),
+  amount: z.number(),
+  typeOperation: z.string(),
   assetType: z.number(),
 });
 
@@ -29,10 +41,12 @@ const AssetDTOScheme = z.object({
  * @property {number} distribution - Asset distribution
  * @property {number} quantity - Asset quantity
  * @property {Array} valuePerPeriod - Asset value per period - Array of object with date and value
- * @property {Date} valuePerPeriod.date - Asset value per period date
+ * @property {string} valuePerPeriod.date - Asset value per period date
  * @property {number} valuePerPeriod.value - Operation amount
  * @property {number} valuePerPeriod.totalAmount - Total amount with all operation prior to this transaction
  * @property {string} valuePerPeriod.topBuy -Buy/sell transaction indicator - Value 'B' for buy and 'S' for sell
+ * @property {number} valuePerPeriod.quantity - Asset quantity
+ * @property {number} valuePerPeriod.id - Asset id
  * @property {number} amount - Asset amount
  * @property {number} totalAmount - Asset total amount
  * @property {boolean} purchased - Asset purchased
@@ -40,3 +54,4 @@ const AssetDTOScheme = z.object({
  *
  */
 export type AssetDTO = z.infer<typeof AssetDTOScheme>;
+export type AssetForm = z.infer<typeof AssetFormScheme>;

@@ -1,4 +1,4 @@
-import { AssetDTO } from "src/domain/model/asset-dto/asset.dto";
+import { AssetForm } from "src/domain/model/asset-dto/asset.dto";
 import { AssetDAO } from "src/infrastructure/entities/asset-dao/asset.dao";
 import { AssetTypeDAO } from "src/infrastructure/entities/asset-type-dao/asset-type.dao";
 
@@ -12,9 +12,13 @@ export interface AssetRepository {
   getAllAssetsByMonth(month: number): Promise<AssetDAO[]>;
   getAllOperationForOneAsset(
     portfolioId: number,
-    assetId: number
+    assetName: string
   ): Promise<AssetDAO[]>;
-  createAsset(asset: AssetDTO, portfolioId: number): Promise<AssetDAO[]>;
-  updateAsset(portfolioId: number, asset: AssetDTO): Promise<AssetDAO>;
-  deleteAsset(assetId: number): Promise<AssetDAO>;
+  createAsset(asset: AssetForm, portfolioId: number): Promise<AssetDAO[]>;
+  updateAsset(portfolioId: number, asset: AssetForm): Promise<AssetDAO[]>;
+  deleteAsset(
+    assetId: number,
+    assetName: string,
+    portfolioId: number
+  ): Promise<AssetDAO[]>;
 }

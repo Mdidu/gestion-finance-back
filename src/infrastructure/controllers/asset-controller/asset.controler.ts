@@ -8,10 +8,10 @@ import {
   Post,
   Put,
 } from "@nestjs/common";
-import { AssetDTO } from "src/domain/model/asset-dto/asset.dto";
+import { AssetDTO, AssetForm } from "src/domain/model/asset-dto/asset.dto";
+import { AssetTypeDTO } from "src/domain/model/asset-type/asset-type.dto";
 import {
   AssetListResponse,
-  AssetResponse,
   AssetService,
 } from "../../services/asset-service/asset.service";
 
@@ -20,7 +20,7 @@ export class AssetController {
   constructor(private readonly assetService: AssetService) {}
 
   @Get("/types")
-  public getAllAssetTypes(): Promise<any[]> {
+  public getAllAssetTypes(): Promise<AssetTypeDTO[]> {
     return this.assetService.getAllAssetTypes();
   }
 
@@ -46,13 +46,13 @@ export class AssetController {
       });
   }
 
-  @Get("/:portfolioId/:assetId")
+  @Get("/:portfolioId/:assetName")
   public getAllOperationForOneAsset(
     @Param("portfolioId", ParseIntPipe) portfolioId: number,
-    @Param("assetId", ParseIntPipe) assetId: number
+    @Param("assetName") assetName: string
   ): Promise<AssetListResponse> {
     return this.assetService
-      .getAllOperationForOneAsset(portfolioId, assetId)
+      .getAllOperationForOneAsset(portfolioId, assetName)
       .then((res: AssetDTO[]) => {
         return { assetList: res };
       });
@@ -60,11 +60,11 @@ export class AssetController {
 
   @Post("/:portfolioId")
   public createAsset(
-    @Body() assetDTO: any,
+    @Body() asset: AssetForm,
     @Param("portfolioId", ParseIntPipe) portfolioId: number
   ): Promise<AssetListResponse> {
     return this.assetService
-      .createAsset(assetDTO, portfolioId)
+      .createAsset(asset, portfolioId)
       .then((res: AssetDTO[]) => {
         return { assetList: res };
       });
@@ -74,22 +74,25 @@ export class AssetController {
   public updateAsset(
     @Param("portfolioId", ParseIntPipe) portfolioId: number,
     @Param("assetId", ParseIntPipe) assetId: number,
-    @Body() assetDTO: any
-  ): Promise<AssetResponse> {
+    @Body() asset: AssetForm
+  ): Promise<AssetListResponse> {
     return this.assetService
-      .updateAsset(portfolioId, assetDTO)
-      .then((res: AssetDTO) => {
-        return { asset: res };
+      .updateAsset(portfolioId, asset)
+      .then((res: AssetDTO[]) => {
+        return { assetList: res };
       });
   }
 
-  @Delete("/:portfolioId/:assetId")
+  @Delete("/:portfolioId/:assetId/:assetName")
   public deleteAsset(
     @Param("portfolioId", ParseIntPipe) portfolioId: number,
-    @Param("assetId", ParseIntPipe) assetId: number
-  ): Promise<AssetResponse> {
-    return this.assetService.deleteAsset(assetId).then((res: AssetDTO) => {
-      return { asset: res };
-    });
+    @Param("assetId", ParseIntPipe) assetId: number,
+    @Param("assetName") assetName: string
+  ): Promise<AssetListResponse> {
+    return this.assetService
+      .deleteAsset(assetId, assetName, portfolioId)
+      .then((res: AssetDTO[]) => {
+        return { assetList: res };
+      });
   }
 }
